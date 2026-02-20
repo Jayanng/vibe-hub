@@ -33,6 +33,6 @@
     "typescript": "^5"
   },
   "overrides": {
-    "viem": "npm:@midl/viem"
+    "viem": "npm:@midl/viem@^2.45.0"
   }
 }

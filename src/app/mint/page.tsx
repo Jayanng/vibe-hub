@@ -91,10 +91,10 @@ export default function MintPage() {
                         <span className="material-icons group-hover:text-[#f7951d] transition-colors">leaderboard</span>
                         <span className="hidden lg:block ml-3 font-medium">Leaderboard</span>
                     </div>
-                    <div className="flex items-center p-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors group cursor-pointer">
-                        <span className="material-icons group-hover:text-[#f7951d] transition-colors">person</span>
+                    <Link href="/profile" className="flex items-center p-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors group cursor-pointer">
+                        <span className="material-icons group-hover:text-[#f7951d] transition-colors">account_circle</span>
                         <span className="hidden lg:block ml-3 font-medium">Profile</span>
-                    </div>
+                    </Link>
                     <div className="flex items-center p-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors group cursor-pointer">
                         <span className="material-icons group-hover:text-[#f7951d] transition-colors">history</span>
                         <span className="hidden lg:block ml-3 font-medium">Activity</span>

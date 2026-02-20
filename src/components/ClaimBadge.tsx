@@ -308,7 +308,7 @@ function MintingModal({ status, countdown, txId, evmTxHash, errorMsg, onRetry, o
         content = (
             <div className="flex flex-col gap-4 w-full">
                 <p className="text-slate-400 text-sm">Transaction confirmed successfully.</p>
-                <div className="bg-[#231a0f] p-3 rounded-lg flex flex-col gap-3 border border-white/5">
+                <div className="bg-[#1c140d] p-3 rounded-lg flex flex-col gap-3 border border-[#f7951d]/30 shadow-inner shadow-[#f7951d]/10">
                     <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-500">BTC Transaction</span>
                         <a
@@ -359,7 +359,7 @@ function MintingModal({ status, countdown, txId, evmTxHash, errorMsg, onRetry, o
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
 
             {/* Modal Content */}
-            <div className="relative bg-[#1a140c] border border-[#f7951d]/30 rounded-2xl p-6 max-w-sm w-full shadow-2xl shadow-orange-900/20 transform transition-all scale-100 animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative bg-[#1c140d] border border-[#f7951d]/30 rounded-2xl p-6 max-w-sm w-full shadow-2xl shadow-orange-900/20 transform transition-all scale-100 animate-in fade-in zoom-in-95 duration-200">
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white">
                     <span className="material-icons">close</span>
                 </button>

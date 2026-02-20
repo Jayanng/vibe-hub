@@ -28,43 +28,25 @@ const useConfigStore = create<AppConfigState>(
 );
 // --- 1. SHARED DATA (Synced with Mint Page) ---
 const BADGES_DATA = [
-  // UNLOCKED BADGES
-  {
-    title: "Early Adopters",
-    desc: "For the pioneers who helped stress-test the network before mainnet.",
-    icon: "military_tech",
-    colorClass: "bg-linear-to-br from-yellow-600 to-yellow-900",
-    glowClass: "badge-glow-gold",
-    rarity: "Legendary",
-    xp: 1000,
-    locked: false
-  },
-  {
-    title: "Faucet Frequent Flyer",
-    desc: "Successfully claimed testnet tokens from the MIDL faucet 5+ times.",
-    icon: "water_drop",
-    colorClass: "bg-linear-to-br from-blue-400 to-blue-700",
-    glowClass: "drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]",
-    rarity: "Common",
-    xp: 50,
-    locked: false
-  },
-  // LOCKED BADGES (10 items)
-  { title: "Liquidity Lord", desc: "Provided >0.01 BTC liquidity...", icon: "waves", colorClass: "bg-linear-to-br from-purple-600 to-purple-900", rarity: "Epic", xp: 450, locked: true },
-  { title: "Yield Harvester", desc: "Staked assets in a MIDL lending protocol...", icon: "agriculture", colorClass: "bg-linear-to-br from-emerald-600 to-emerald-900", rarity: "Rare", xp: 200, locked: true },
-  { title: "Atomic Swapper", desc: "Completed 50+ swaps on MIDL-native...", icon: "swap_horiz", colorClass: "bg-linear-to-br from-orange-600 to-orange-900", rarity: "Rare", xp: 300, locked: true },
-  { title: "Rune Runner", desc: "Minted or transferred a Rune token...", icon: "auto_awesome", colorClass: "bg-linear-to-br from-pink-600 to-rose-900", rarity: "Rare", xp: 350, locked: true },
-  { title: "Ordinal Curator", desc: "Holds at least 30 Bitcoin Ordinal...", icon: "collections", colorClass: "bg-linear-to-br from-indigo-600 to-indigo-900", rarity: "Rare", xp: 300, locked: true },
-  { title: "DAO Architect", desc: "Voted on at least 7 governance proposals...", icon: "gavel", colorClass: "bg-linear-to-br from-teal-600 to-teal-900", rarity: "Uncommon", xp: 150, locked: true },
-  { title: "Social Sybil Slayer", desc: "Linked a verified X (Twitter) or Discord...", icon: "fingerprint", colorClass: "bg-linear-to-br from-sky-600 to-sky-900", rarity: "Common", xp: 100, locked: true },
-  { title: "Ecosystem Scout", desc: "Held at least 10 different tokens...", icon: "travel_explore", colorClass: "bg-linear-to-br from-cyan-600 to-cyan-900", rarity: "Rare", xp: 400, locked: true },
-  { title: "Iron Hands", desc: "Supplied collateral and maintained health...", icon: "front_hand", colorClass: "bg-linear-to-br from-red-600 to-red-900", rarity: "Epic", xp: 500, locked: true },
-  { title: "Smart Contract Artisan", desc: "Deployed a smart contract on MIDL...", icon: "terminal", colorClass: "bg-linear-to-br from-slate-500 to-slate-800", rarity: "Legendary", xp: 900, locked: true }
+  { id: "early-adopter", title: "Early Adopters", desc: "For the pioneers who helped stress-test the network before mainnet.", icon: "military_tech", colorClass: "bg-linear-to-br from-yellow-600 to-yellow-900", glowClass: "badge-glow-gold", tagClass: "text-yellow-500 border-yellow-500/30 bg-yellow-500/10", rarity: "Legendary", rarityPct: "0.5%", xp: 1000, locked: false, badgeTypeId: 1 },
+  { id: "faucet-flyer", title: "Faucet Frequent Flyer", desc: "Successfully claimed testnet tokens from the MIDL faucet 5+ times.", icon: "water_drop", colorClass: "bg-linear-to-br from-blue-400 to-blue-700", glowClass: "drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]", tagClass: "text-blue-500 border-blue-500/30 bg-blue-500/10", rarity: "Common", rarityPct: "45%", xp: 50, locked: false, badgeTypeId: 2 },
+  { id: "liquidity", title: "Liquidity Lord", desc: "Provided >0.01 BTC liquidity...", icon: "waves", colorClass: "bg-linear-to-br from-purple-600 to-purple-900", tagClass: "text-purple-500 border-purple-500/30 bg-purple-500/10", rarity: "Epic", rarityPct: "5%", xp: 450, locked: false, badgeTypeId: 3 },
+  { id: "yield", title: "Yield Harvester", desc: "Staked assets in a MIDL lending...", icon: "agriculture", colorClass: "bg-linear-to-br from-emerald-600 to-emerald-900", tagClass: "text-emerald-500 border-emerald-500/30 bg-emerald-500/10", rarity: "Rare", rarityPct: "15%", xp: 200, locked: false, badgeTypeId: 4 },
+  { id: "atomic", title: "Atomic Swapper", desc: "Completed 50+ swaps on MIDL...", icon: "swap_horiz", colorClass: "bg-linear-to-br from-orange-600 to-orange-900", tagClass: "text-orange-500 border-orange-500/30 bg-orange-500/10", rarity: "Rare", rarityPct: "12%", xp: 300, locked: true },
+  { id: "rune", title: "Rune Runner", desc: "Minted or transferred a Rune token...", icon: "auto_awesome", colorClass: "bg-linear-to-br from-pink-600 to-rose-900", tagClass: "text-pink-500 border-pink-500/30 bg-pink-500/10", rarity: "Rare", rarityPct: "18%", xp: 350, locked: true },
+  { id: "ordinal", title: "Ordinal Curator", desc: "Holds at least 30 Bitcoin Ordinal...", icon: "collections", colorClass: "bg-linear-to-br from-indigo-600 to-indigo-900", tagClass: "text-indigo-500 border-indigo-500/30 bg-indigo-500/10", rarity: "Rare", rarityPct: "20%", xp: 300, locked: true },
+  { id: "dao", title: "DAO Architect", desc: "Voted on at least 7 governance...", icon: "gavel", colorClass: "bg-linear-to-br from-teal-600 to-teal-900", tagClass: "text-teal-500 border-teal-500/30 bg-teal-500/10", rarity: "Uncommon", rarityPct: "30%", xp: 150, locked: true },
+  { id: "sybil", title: "Social Sybil Slayer", desc: "Linked a verified X (Twitter)...", icon: "fingerprint", colorClass: "bg-linear-to-br from-sky-600 to-sky-900", tagClass: "text-sky-500 border-sky-500/30 bg-sky-500/10", rarity: "Common", rarityPct: "40%", xp: 100, locked: true },
+  { id: "scout", title: "Ecosystem Scout", desc: "Held at least 10 different tokens...", icon: "travel_explore", colorClass: "bg-linear-to-br from-cyan-600 to-cyan-900", tagClass: "text-cyan-500 border-cyan-500/30 bg-cyan-500/10", rarity: "Rare", rarityPct: "14%", xp: 400, locked: true },
+  { id: "iron", title: "Iron Hands", desc: "Supplied collateral and maintained...", icon: "front_hand", colorClass: "bg-linear-to-br from-red-600 to-red-900", tagClass: "text-red-500 border-red-500/30 bg-red-500/10", rarity: "Epic", rarityPct: "6%", xp: 500, locked: true },
+  { id: "dev", title: "Smart Contract Artisan", desc: "Deployed a smart contract on MIDL...", icon: "terminal", colorClass: "bg-linear-to-br from-slate-500 to-slate-800", tagClass: "text-slate-400 border-slate-400/30 bg-slate-500/10", rarity: "Legendary", rarityPct: "1%", xp: 900, locked: true }
 ];
+
+import { useGlobalBalance } from '@/components/BalanceProvider';
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
+  const { balance } = useGlobalBalance();
 
   // MIDL Hooks
   const { isConnected, accounts } = useAccounts();
@@ -75,61 +57,41 @@ export default function Dashboard() {
 
   const address = isConnected && accounts?.[0] ? accounts[0].address : null;
 
+  const [claimedBadges, setClaimedBadges] = useState<Record<string, number>>({});
+
   useEffect(() => {
     setMounted(true);
-  }, []);
 
-  // Fetch wallet balance for ALL accounts
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (!isConnected || !accounts || accounts.length === 0) {
-        setBalance(null);
-        return;
-      }
-
-      console.log(`[DEBUG] Fetching balance for ${accounts.length} accounts`);
-
-      try {
-        let totalWalletBalance = 0;
-
-        // Iterate through all connected accounts (Payment, Ordinals, etc.)
-        for (const account of accounts) {
-          const address = account.address;
-          console.log(`[DEBUG] Fetching for address: ${address} (${account.purpose})`);
-
-          const response = await fetch(`/api/balance?address=${address}`);
-          if (response.ok) {
-            const utxos = await response.json();
-            if (Array.isArray(utxos)) {
-              const addressSats = utxos.reduce((sum: number, utxo: any) => sum + (utxo.value || 0), 0);
-              console.log(`[DEBUG] Address ${address} balance: ${addressSats} sats`);
-              totalWalletBalance += addressSats;
-            }
-          }
+    if (isConnected && address) {
+      const newClaimed: Record<string, number> = {};
+      BADGES_DATA.forEach(badge => {
+        const key = `vibe_badge_claim_${address}_${badge.id}`;
+        const val = localStorage.getItem(key);
+        if (val) {
+          // Fallback: if they minted prior to the timestamp update, val is "true".
+          newClaimed[badge.id] = val === "true" ? 1 : parseInt(val, 10);
         }
-
-        console.log(`[DEBUG] Total Wallet Balance: ${totalWalletBalance} sats`);
-        setBalance(totalWalletBalance / 100000000); // Convert satoshis to BTC
-
-      } catch (error) {
-        console.error('[DEBUG] Failed to fetch balance:', error);
-        setBalance(0);
-      }
-    };
-
-    fetchBalance();
-    const interval = setInterval(fetchBalance, 10000);
-    return () => clearInterval(interval);
-  }, [isConnected, accounts]);
+      });
+      setClaimedBadges(newClaimed);
+    } else {
+      setClaimedBadges({});
+    }
+  }, [isConnected, address]);
 
   // --- 2. DYNAMIC CALCULATIONS ---
 
-  // A. Filter Owned Data
-  const unlockedBadges = BADGES_DATA.filter(b => !b.locked);
-  const nextQuest = BADGES_DATA.find(b => b.locked); // The first locked badge is your "Next Quest"
+  // A. Filter Owned Data Dynamically
+  // Only explicitly claimed badges by this wallet based on local storage
+  const ownedBadges = BADGES_DATA.filter(b => claimedBadges[b.id] !== undefined);
+  const nextQuest = BADGES_DATA.find(b => claimedBadges[b.id] === undefined); // The next unclaimed badge
+
+  // Filter for visual "Recent Achievements" box (only 2, sorted newest to oldest)
+  const recentAchievements = [...ownedBadges]
+    .sort((a, b) => (claimedBadges[b.id] || 0) - (claimedBadges[a.id] || 0))
+    .slice(0, 2);
 
   // B. XP & Level
-  const totalXP = unlockedBadges.reduce((acc, curr) => acc + curr.xp, 0); // Should be 1050
+  const totalXP = ownedBadges.reduce((acc, curr) => acc + curr.xp, 0);
   const maxPossibleXP = BADGES_DATA.reduce((acc, curr) => acc + curr.xp, 0); // Total XP of all badges
   const currentLevel = Math.floor(totalXP / 500) + 1; // Level 3 (1050 / 500 = 2.1 -> +1 = 3)
   const nextLevelThreshold = currentLevel * 500;
@@ -137,7 +99,7 @@ export default function Dashboard() {
 
   // C. Reputation (Standard: XP * 10 Multiplier)
   // Gives a "Score" feel rather than just a raw stat.
-  const reputation = totalXP * 10;
+  const reputation = isConnected && ownedBadges.length > 0 ? totalXP * 10 : 0;
 
   // D. Rank (Standard: Simulated Leaderboard)
   // Simulates a leaderboard of 10,000 early users. As you gain Rep, your rank # drops (improves).
@@ -147,7 +109,7 @@ export default function Dashboard() {
 
   // E. Dynamic Title
   // Only grant "Pioneer" if they have the specific Legendary badge.
-  const hasEarlyAdopter = unlockedBadges.some(b => b.title === "Early Adopters");
+  const hasEarlyAdopter = ownedBadges.some(b => b.id === "early-adopter");
   const userTitle = hasEarlyAdopter ? "Pioneer" : "Explorer";
 
   // Handlers
@@ -257,7 +219,7 @@ export default function Dashboard() {
                 >
                   {isConnected ? (
                     <>
-                      <span className="font-mono text-sm">{balance?.toFixed(8) ?? "0.00000000"} BTC</span>
+                      <span className="font-mono text-sm">{balance !== null ? Number(balance.toFixed(4)) : "0.00"} BTC</span>
                       <div className="w-6 h-6 rounded-full bg-linear-to-tr from-blue-500 to-teal-400 border border-white/20"></div>
                       <span className="text-sm opacity-80">{address ? truncateAddress(address) : "..."}</span>
                     </>
@@ -357,7 +319,7 @@ export default function Dashboard() {
                   <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Badges</span>
                   <div className="mt-auto">
                     {/* Real Badge Count */}
-                    <span className="text-3xl font-bold text-white block">{isConnected ? `${unlockedBadges.length}/12` : "0"}</span>
+                    <span className="text-3xl font-bold text-white block">{isConnected ? `${ownedBadges.length}/12` : "---"}</span>
                   </div>
                 </div>
               </div>
@@ -367,9 +329,9 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-white">Recent Achievements</h3>
                 </div>
-                <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 h-[200px]">
-                  {isConnected && unlockedBadges.length > 0 ? (
-                    unlockedBadges.map((badge, idx) => (
+                <div className="space-y-4 flex flex-col justify-start flex-1 min-h-[160px]">
+                  {isConnected && recentAchievements.length > 0 ? (
+                    recentAchievements.map((badge, idx) => (
                       <div key={idx} className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
                         <div className={`w-12 h-12 rounded-lg border border-white/10 flex items-center justify-center shrink-0 ${badge.colorClass}`}>
                           <span className="material-icons text-white text-lg">{badge.icon}</span>

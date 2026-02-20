@@ -80,7 +80,7 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
                 if (address && badgeId) {
                     const key = `vibe_badge_claim_${address}_${badgeId}`;
                     console.log("[ClaimBadge] Saving to storage:", key);
-                    localStorage.setItem(key, "true");
+                    localStorage.setItem(key, Date.now().toString());
                 }
                 setCountdown(5); // Start Auto-Close Countdown
                 if (onSuccess) onSuccess();
@@ -96,10 +96,14 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
             const storedClaim = localStorage.getItem(key);
             console.log("[ClaimBadge] Key:", key, "Value:", storedClaim);
 
-            if (storedClaim === "true") {
+            if (storedClaim) { // Check if truthy (could be "true" or a timestamp)
                 console.log("[ClaimBadge] Restoration success!");
                 setLocalClaimed(true);
+            } else {
+                setLocalClaimed(false);
             }
+        } else {
+            setLocalClaimed(false);
         }
     }, [address, badgeId]);
 
@@ -177,6 +181,14 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
 
                     setTxId(btcData.tx.id); // Save BTC TXID for explorer
                     setStatus("success");
+
+                    // Optimistically save claimed state instantly so it persists on refresh/reconnect
+                    setLocalClaimed(true);
+                    if (address && badgeId) {
+                        const key = `vibe_badge_claim_${address}_${badgeId}`;
+                        localStorage.setItem(key, Date.now().toString());
+                    }
+
                     waitForTransaction({ txId: btcData.tx.id });
                 } catch (err: any) {
                     console.error("Broadcast Error:", err);

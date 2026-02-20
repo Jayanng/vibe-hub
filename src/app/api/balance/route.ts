@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     try {
         // Use the MIDL Regtest Mempool API
-        const response = await fetch(`https://mempool.regtest.midl.xyz/api/address/${address}/utxo`, {
+        const response = await fetch(`https://mempool.staging.midl.xyz/api/address/${address}/utxo`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',

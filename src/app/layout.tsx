@@ -9,7 +9,7 @@ import { midlConfig } from "../midlConfig";
 import { queryClient } from "../query-client";
 import "@midl/satoshi-kit/styles.css";
 import "./globals.css";
-import { WalletDebug } from "../components/WalletDebug";
+import { BalanceProvider } from "../components/BalanceProvider";
 
 export default function RootLayout({
   children,
@@ -28,8 +28,9 @@ export default function RootLayout({
           <QueryClientProvider client={queryClient}>
             <WagmiMidlProvider>
               <SatoshiKitProvider config={midlConfig}>
-                {children}
-                <WalletDebug />
+                <BalanceProvider>
+                  {children}
+                </BalanceProvider>
               </SatoshiKitProvider>
             </WagmiMidlProvider>
           </QueryClientProvider>

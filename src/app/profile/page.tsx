@@ -33,6 +33,7 @@ export default function ProfilePage() {
     const address = isConnected && accounts?.[0] ? accounts[0].address : null;
 
     const [claimedBadges, setClaimedBadges] = useState<Record<string, number>>({});
+    const [extraReputation, setExtraReputation] = useState(0);
 
     // Profile Editing State
     const [isEditing, setIsEditing] = useState(false);
@@ -69,8 +70,20 @@ export default function ProfilePage() {
             setDisplayName("");
             setBio("");
             setAvatarUrl("");
+            setExtraReputation(0);
             setIsEditing(false);
         }
+
+        const loadExtraRep = () => {
+            if (address) {
+                const saved = localStorage.getItem(`vibe_reputation_${address}`);
+                setExtraReputation(parseInt(saved || "0"));
+            }
+        };
+        loadExtraRep();
+
+        window.addEventListener("reputation-updated", loadExtraRep);
+        return () => window.removeEventListener("reputation-updated", loadExtraRep);
     }, [isConnected, address]);
 
     const handleSaveProfile = () => {
@@ -96,7 +109,8 @@ export default function ProfilePage() {
     const ownedBadges = BADGES_DATA.filter(b => claimedBadges[b.id] !== undefined);
     const totalXP = ownedBadges.reduce((acc, curr) => acc + curr.xp, 0);
     const currentLevel = Math.floor(totalXP / 500) + 1;
-    const reputation = isConnected && ownedBadges.length > 0 ? Math.floor(totalXP / 5) : 0;
+    const baseReputation = isConnected && ownedBadges.length > 0 ? Math.floor(totalXP / 5) : 0;
+    const reputation = baseReputation + extraReputation;
     const hasEarlyAdopter = ownedBadges.some(b => b.id === "early-adopter");
     const userTitle = hasEarlyAdopter ? "Pioneer" : "Explorer";
 

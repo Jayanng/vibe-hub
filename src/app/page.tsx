@@ -43,6 +43,7 @@ const BADGES_DATA = [
 ];
 
 import { useGlobalBalance } from '@/components/BalanceProvider';
+import DailyCheckIn from "@/components/DailyCheckIn";
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
@@ -58,11 +59,20 @@ export default function Dashboard() {
   const address = isConnected && accounts?.[0] ? accounts[0].address : null;
 
   const [claimedBadges, setClaimedBadges] = useState<Record<string, number>>({});
+  const [extraReputation, setExtraReputation] = useState(0);
 
   useEffect(() => {
     setMounted(true);
 
+    const loadExtraRep = () => {
+      if (address) {
+        const saved = localStorage.getItem(`vibe_reputation_${address}`);
+        setExtraReputation(parseInt(saved || "0"));
+      }
+    };
+
     if (isConnected && address) {
+      loadExtraRep();
       const newClaimed: Record<string, number> = {};
       BADGES_DATA.forEach(badge => {
         const key = `vibe_badge_claim_${address}_${badge.id}`;
@@ -75,7 +85,11 @@ export default function Dashboard() {
       setClaimedBadges(newClaimed);
     } else {
       setClaimedBadges({});
+      setExtraReputation(0);
     }
+
+    window.addEventListener("reputation-updated", loadExtraRep);
+    return () => window.removeEventListener("reputation-updated", loadExtraRep);
   }, [isConnected, address]);
 
   // --- 2. DYNAMIC CALCULATIONS ---
@@ -99,7 +113,8 @@ export default function Dashboard() {
 
   // C. Reputation (Standard: XP * 10 Multiplier)
   // Gives a "Score" feel rather than just a raw stat.
-  const reputation = isConnected && ownedBadges.length > 0 ? Math.floor(totalXP / 5) : 0;
+  const baseReputation = isConnected && ownedBadges.length > 0 ? Math.floor(totalXP / 5) : 0;
+  const reputation = baseReputation + extraReputation;
 
   // D. Rank (Standard: Simulated Leaderboard)
   // Simulates a leaderboard of 10,000 early users. As you gain Rep, your rank # drops (improves).
@@ -409,6 +424,7 @@ export default function Dashboard() {
 
         </div>
       </main>
+      <DailyCheckIn />
     </div>
   );
 }

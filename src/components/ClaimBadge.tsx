@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useAddTxIntention, useFinalizeBTCTransaction, useSignIntention, useSendBTCTransactions, useEVMAddress } from "@midl/executor-react";
 import { useWaitForTransaction, useAccounts } from "@midl/react";
@@ -27,6 +27,7 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     const [txId, setTxId] = useState<string | null>(null);
     const [evmTxHash, setEvmTxHash] = useState<string | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const finalizedRef = useRef(false);
 
     // --- HOOKS ---
     const { accounts } = useAccounts();
@@ -40,11 +41,19 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     const { finalizeBTCTransaction, data: btcData, error: btcError } = useFinalizeBTCTransaction();
 
     useEffect(() => {
-        if (txIntentions.length > 0 && status === "preparing" && isMinting) {
+        if (txIntentions.length > 0 && status === "preparing" && isMinting && !finalizedRef.current) {
+            finalizedRef.current = true;
             console.log("STEP 2: Finalizing...");
             finalizeBTCTransaction({ from: address, feeRate: 2 });
         }
     }, [txIntentions, status, isMinting]);
+
+    // Reset the ref when minting stops
+    useEffect(() => {
+        if (!isMinting) {
+            finalizedRef.current = false;
+        }
+    }, [isMinting]);
 
     useEffect(() => {
         if (btcData && status === "preparing") {
@@ -53,7 +62,17 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     }, [btcData, status]);
 
     useEffect(() => {
-        if (btcError) console.error("[DEBUG] finalize error:", btcError);
+        if (btcError) {
+            console.error("[DEBUG] finalize error:", btcError);
+            const errorMessage = btcError?.message || "";
+            if (errorMessage.includes("No selected UTXOs") || errorMessage.includes("UTXOs")) {
+                setErrorMsg("Insufficient balance. Please get testnet BTC from the faucet first, then try again.");
+            } else {
+                setErrorMsg(errorMessage || "Transaction failed.");
+            }
+            setIsMinting(true);
+            setStatus("error" as any);
+        }
     }, [btcError]);
 
     const { signIntentionAsync } = useSignIntention();
@@ -228,16 +247,12 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
                     errorMsg={errorMsg}
                     onRetry={handleClaim}
                     onClose={() => {
-                        // If success/broadcasting, closing means we are done -> reset to idle but keep localClaimed if successful
-                        if (status === 'success') {
+                        setIsMinting(false);
+                        setStatus("idle");
+                        setErrorMsg(null);
+                        setCountdown(null);
+                        if (status === "success") {
                             setLocalClaimed(true);
-                            setIsMinting(false);
-                            setStatus('idle');
-                            setCountdown(null);
-                        } else if (errorMsg) {
-                            setIsMinting(false);
-                            setStatus('idle');
-                            setErrorMsg(null);
                         }
                     }}
                 />
@@ -282,10 +297,10 @@ function MintingModal({ status, countdown, txId, evmTxHash, errorMsg, onRetry, o
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
-    if (status === 'idle') return null;
     if (!mounted) return null;
+    if (status === 'idle' && !errorMsg) return null;
 
-    const isError = !!errorMsg;
+    const isError = !!errorMsg || status === "error";
     const isSuccess = status === 'success';
 
     let title = "Minting Badge...";
@@ -346,6 +361,13 @@ function MintingModal({ status, countdown, txId, evmTxHash, errorMsg, onRetry, o
         content = (
             <div className="flex flex-col gap-3 w-full">
                 <p className="text-red-400 text-sm text-center bg-red-500/10 p-2 rounded border border-red-500/20">{errorMsg}</p>
+                {errorMsg?.includes("faucet") && (
+                    <a href="https://faucet.midl.xyz" target="_blank" rel="noreferrer"
+                        className="text-[#f7951d] text-sm hover:underline flex items-center justify-center gap-1 mt-2">
+                        <span className="material-icons text-sm">open_in_new</span>
+                        Go to faucet.midl.xyz
+                    </a>
+                )}
                 <button onClick={onRetry} className="bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-bold">
                     Retry
                 </button>

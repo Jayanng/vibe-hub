@@ -11,7 +11,7 @@ import MidlSBTAbi from "../abi/MidlSBT.json";
 // Contract Address
 const SBT_CONTRACT_ADDRESS = "0x254349F8D356ED15a774C318dC770ea1BC6912fc";
 const CURRENT_CONTRACT = "0x254349F8D356ED15a774C318dC770ea1BC6912fc";
-const CONTRACT_VERSION_KEY = "vibe_contract_v2";
+const CONTRACT_VERSION_KEY = "vibe_contract_v3";
 
 interface ClaimBadgeProps {
     badgeId?: string;
@@ -23,7 +23,7 @@ interface ClaimBadgeProps {
 export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopter SBT", badgeTypeId, onSuccess }: ClaimBadgeProps) {
     // --- STATE ---
     const [isMinting, setIsMinting] = useState(false);
-    const [status, setStatus] = useState<"idle" | "preparing" | "signing" | "broadcasting" | "success">("idle");
+    const [status, setStatus] = useState<"idle" | "preparing" | "signing" | "broadcasting" | "confirming" | "success">("idle");
     const [countdown, setCountdown] = useState<number | null>(null);
     const [localClaimed, setLocalClaimed] = useState(false);
     const [txId, setTxId] = useState<string | null>(null);
@@ -89,21 +89,16 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
         query: { enabled: !!evmAddress && !!badgeTypeId }
     });
 
-    const isClaimed = localClaimed || (balance ? Number(balance) > 0 : false);
+    const isClaimed = balance !== undefined
+        ? Number(balance) > 0          // on-chain is authoritative when loaded
+        : localClaimed;                 // localStorage only as fallback while loading
 
     // Transaction Listener
     const { waitForTransaction } = useWaitForTransaction({
         mutation: {
             onSuccess: () => {
-                console.log("Transaction Confirmed!");
-                setLocalClaimed(true);
-                // Persist to LocalStorage
-                if (address && badgeId) {
-                    const key = `vibe_badge_claim_${address}_${badgeId}`;
-                    console.log("[ClaimBadge] Saving to storage:", key);
-                    localStorage.setItem(key, Date.now().toString());
-                }
-                setCountdown(5); // Start Auto-Close Countdown
+                console.log("Transaction Confirmed via waitForTransaction!");
+                // Additional confirmation side-effect — UI gated by balance polling instead
                 if (onSuccess) onSuccess();
             },
         },
@@ -144,6 +139,16 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
             setLocalClaimed(false);
         }
     }, [address, badgeId]);
+
+    // --- EFFECT: SELF-HEAL STALE LOCALSTORAGE ---
+    // If on-chain balance resolves to 0 but localStorage says claimed, it's stale (e.g. old contract) — clear it
+    useEffect(() => {
+        if (balance !== undefined && Number(balance) === 0 && localClaimed && address && badgeId) {
+            const key = `vibe_badge_claim_${address}_${badgeId}`;
+            localStorage.removeItem(key);
+            setLocalClaimed(false);
+        }
+    }, [balance, localClaimed, address, badgeId]);
 
     // --- LOGIC: THE 4-STEP FLOW ---
     const handleClaim = async () => {
@@ -188,69 +193,89 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
         }
     };
 
-    // STEP 3: Sign (Triggered when btcData is ready)
+    // STEP 3 + 4: Sign then immediately Broadcast using the direct return value
+    // (Merged to avoid race condition where txIntentions is stale at broadcast time)
     useEffect(() => {
-        const sign = async () => {
+        const signAndBroadcast = async () => {
             if (status === "signing" && btcData && txIntentions.length > 0) {
                 const unsigned = txIntentions.filter((i: any) => !i.signedEvmTransaction);
                 if (unsigned.length > 0) {
                     try {
+                        // STEP 3: Sign
                         console.log("STEP 3: Requesting Signature...");
-                        await signIntentionAsync({ intention: unsigned[0], txId: btcData.tx.id });
                         setStatus("broadcasting");
+                        // @ts-ignore
+                        const signedIntention = await signIntentionAsync({
+                            intention: unsigned[0],
+                            txId: btcData.tx.id,
+                        });
+                        console.log("[DEBUG] signedIntention:", signedIntention);
+
+                        // STEP 4: Broadcast using the direct return value — not stale txIntentions state
+                        console.log("STEP 4: Broadcasting...");
+                        // signIntentionAsync returns the signed EVM tx hex directly (0x07... type)
+                        const signedEvmTx = signedIntention as `0x${string}`;
+                        console.log("[DEBUG] signedEvmTx:", signedEvmTx ? signedEvmTx.slice(0, 20) + "..." : "MISSING");
+                        console.log("[DEBUG] BTC tx.id:", btcData.tx.id);
+
+                        if (!signedEvmTx) {
+                            throw new Error("Signing produced no signed EVM transaction.");
+                        }
+
+                        // @ts-ignore
+                        const result = await sendBTCTransactionsAsync({
+                            serializedTransactions: [signedEvmTx] as `0x${string}`[],
+                            btcTransaction: btcData.tx.hex,
+                        });
+                        console.log("Broadcast Success:", JSON.stringify(result));
+
+                        // Capture EVM Hash
+                        if (Array.isArray(result) && result.length > 0) {
+                            setEvmTxHash(result[0]);
+                        }
+
+                        setTxId(btcData.tx.id);
+                        setStatus("confirming"); // Balance polling will transition to success
                     } catch (err: any) {
-                        setErrorMsg("Ordering Cancelled or Failed.");
+                        console.error("Sign/Broadcast Error:", err);
+                        setErrorMsg(err.message || "Signing or broadcast failed.");
                         setIsMinting(false);
                         setStatus("idle");
                     }
                 }
             }
         };
-        sign();
+        signAndBroadcast();
     }, [btcData, status, txIntentions, signIntentionAsync]);
 
-    // STEP 4: Broadcast (Triggered when Signed)
+    // --- EFFECT: POLL BALANCE FOR ON-CHAIN CONFIRMATION ---
+    // Replaces waitForTransaction since BTC TXID may mismatch after co-signing
     useEffect(() => {
-        const broadcast = async () => {
-            const hasSigned = txIntentions.some((i: any) => i.signedEvmTransaction);
-            if (status === "broadcasting" && hasSigned && btcData) {
-                try {
-                    console.log("STEP 4: Broadcasting...");
-                    // @ts-ignore
-                    const result = await sendBTCTransactionsAsync({
-                        serializedTransactions: txIntentions
-                            .map((i: any) => i.signedEvmTransaction as `0x${string}`)
-                            .filter(Boolean),
-                        btcTransaction: btcData.tx.hex,
-                    });
-                    console.log("Broadcast Success:", result);
+        if (status !== "confirming") return;
+        let stopped = false;
 
-                    // Capture EVM Hash (First element of result array)
-                    if (Array.isArray(result) && result.length > 0) {
-                        setEvmTxHash(result[0]);
+        const poll = async () => {
+            while (!stopped) {
+                await new Promise(r => setTimeout(r, 3000));
+                if (stopped) break;
+                const { data } = await refetchBalance();
+                if (data && Number(data) > 0) {
+                    if (!stopped) {
+                        console.log("[ClaimBadge] On-chain confirmed via balance polling!");
+                        setStatus("success");
+                        setLocalClaimed(true);
+                        if (address && badgeId) {
+                            localStorage.setItem(`vibe_badge_claim_${address}_${badgeId}`, Date.now().toString());
+                        }
                     }
-
-                    setTxId(btcData.tx.id); // Save BTC TXID for explorer
-                    setStatus("success");
-
-                    // Optimistically save claimed state instantly so it persists on refresh/reconnect
-                    setLocalClaimed(true);
-                    if (address && badgeId) {
-                        const key = `vibe_badge_claim_${address}_${badgeId}`;
-                        localStorage.setItem(key, Date.now().toString());
-                    }
-
-                    waitForTransaction({ txId: btcData.tx.id });
-                } catch (err: any) {
-                    console.error("Broadcast Error:", err);
-                    setErrorMsg(err.message || "Broadcast Failed.");
-                    setIsMinting(false);
-                    setStatus("idle");
+                    break;
                 }
             }
         };
-        broadcast();
-    }, [status, txIntentions, btcData, waitForTransaction]);
+
+        poll();
+        return () => { stopped = true; };
+    }, [status]);
 
     // --- AUTO-CLOSE COUNTDOWN ---
     useEffect(() => {
@@ -348,6 +373,9 @@ function MintingModal({ status, countdown, txId, evmTxHash, errorMsg, onRetry, o
     } else if (status === 'broadcasting') {
         title = "Broadcasting...";
         content = <p className="text-slate-400 text-sm">Sending transaction to the network.</p>;
+    } else if (status === 'confirming') {
+        title = "Confirming on-chain...";
+        content = <p className="text-slate-400 text-sm">Waiting for the transaction to appear on-chain. This may take a moment.</p>;
     } else if (isSuccess) {
         title = "Badge Claimed!";
         icon = "check_circle";
@@ -381,9 +409,6 @@ function MintingModal({ status, countdown, txId, evmTxHash, errorMsg, onRetry, o
                         </div>
                     )}
                 </div>
-                {countdown !== null && (
-                    <p className="text-center text-xs text-slate-500">Auto-closing in {countdown}s...</p>
-                )}
             </div>
         );
     } else if (isError) {

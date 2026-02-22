@@ -11,8 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "@midl/executor": "^3.0.2",
-    "@midl/hardhat-deploy": "^3.0.2",
+    "@midl/executor": "^3.0.3",
+    "@midl/hardhat-deploy": "^3.0.3",
     "@midl/viem": "^2.0.0",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@nomicfoundation/hardhat-verify": "^2.1.3",
@@ -22,6 +22,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@midl/core": "^3.0.3",
     "@openzeppelin/contracts": "^5.4.0"
   },
   "overrides": {

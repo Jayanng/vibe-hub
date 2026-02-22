@@ -44,6 +44,7 @@ const BADGES_DATA = [
 
 import { useGlobalBalance } from '@/components/BalanceProvider';
 import DailyCheckIn from "@/components/DailyCheckIn";
+import { NetworkGuideModal } from '@/components/NetworkGuideModal';
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
@@ -60,6 +61,7 @@ export default function Dashboard() {
 
   const [claimedBadges, setClaimedBadges] = useState<Record<string, number>>({});
   const [extraReputation, setExtraReputation] = useState(0);
+  const [showNetworkGuide, setShowNetworkGuide] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -91,6 +93,39 @@ export default function Dashboard() {
     window.addEventListener("reputation-updated", loadExtraRep);
     return () => window.removeEventListener("reputation-updated", loadExtraRep);
   }, [isConnected, address]);
+
+  useEffect(() => {
+    const originalConsoleError = console.error;
+    console.error = (...args: any[]) => {
+      const message = args.map(a =>
+        typeof a === 'string' ? a : a?.message || a?.name || JSON.stringify(a)
+      ).join(" ");
+      if (message.includes("AddressNetworkMismatch") ||
+        message.includes("address does not match") ||
+        message.includes("ConnectDialog error")) {
+        setTimeout(() => {
+          setShowNetworkGuide(true);
+          // Try to close SatoshiKit dialog
+          const selectors = [
+            '[data-testid="close-button"]',
+            'button[aria-label="Close"]',
+            '.satoshi-kit-close',
+            'button[aria-label="close"]',
+          ];
+          for (const selector of selectors) {
+            const btn = document.querySelector(selector) as HTMLElement;
+            if (btn) { btn.click(); break; }
+          }
+          // Also press Escape key to close any open dialog
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        }, 100);
+      }
+      originalConsoleError.apply(console, args);
+    };
+    return () => {
+      console.error = originalConsoleError;
+    };
+  }, [setShowNetworkGuide]);
 
   // --- 2. DYNAMIC CALCULATIONS ---
 
@@ -144,6 +179,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-[#231a0f] text-slate-200 font-sans overflow-hidden">
+      {showNetworkGuide && <NetworkGuideModal onClose={() => setShowNetworkGuide(false)} />}
 
       {/* SIDEBAR */}
       <aside className="w-20 lg:w-64 h-full border-r border-white/5 bg-[#f8f7f5]/5 dark:bg-[#231a0f]/95 flex flex-col justify-between z-20 transition-all duration-300">

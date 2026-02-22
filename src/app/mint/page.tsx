@@ -9,9 +9,10 @@ import { useConnect, useAccounts, useDisconnect, useConfig } from "@midl/react";
 import { AddressPurpose } from "@midl/core";
 import { useEVMAddress } from "@midl/executor-react";
 import { ClaimBadge } from "@/components/ClaimBadge"; // New Component
+import { NetworkGuideModal } from "@/components/NetworkGuideModal";
 
 // 🟢 YOUR LIVE CONTRACT ADDRESS
-const SBT_CONTRACT_ADDRESS = "0x5FAd0EBEcB2dB5A2Ed763507A3A1B6cC0e060871";
+const SBT_CONTRACT_ADDRESS = "0x254349F8D356ED15a774C318dC770ea1BC6912fc";
 
 // --- 1. BADGE DATA ---
 const BADGES_DATA = [
@@ -35,6 +36,7 @@ import { useGlobalBalance } from '@/components/BalanceProvider';
 export default function MintPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [mounted, setMounted] = useState(false);
+    const [showNetworkGuide, setShowNetworkGuide] = useState(false);
     const { balance } = useGlobalBalance();
 
     // --- CONNECT HOOKS ---
@@ -46,6 +48,39 @@ export default function MintPage() {
     console.log("[DEBUG] EVM Address:", evmAddress);
 
     useEffect(() => { setMounted(true); }, []);
+
+    useEffect(() => {
+        const originalConsoleError = console.error;
+        console.error = (...args: any[]) => {
+            const message = args.map(a =>
+                typeof a === 'string' ? a : a?.message || a?.name || JSON.stringify(a)
+            ).join(" ");
+            if (message.includes("AddressNetworkMismatch") ||
+                message.includes("address does not match") ||
+                message.includes("ConnectDialog error")) {
+                setTimeout(() => {
+                    setShowNetworkGuide(true);
+                    // Try to close SatoshiKit dialog
+                    const selectors = [
+                        '[data-testid="close-button"]',
+                        'button[aria-label="Close"]',
+                        '.satoshi-kit-close',
+                        'button[aria-label="close"]',
+                    ];
+                    for (const selector of selectors) {
+                        const btn = document.querySelector(selector) as HTMLElement;
+                        if (btn) { btn.click(); break; }
+                    }
+                    // Also press Escape key to close any open dialog
+                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                }, 100);
+            }
+            originalConsoleError.apply(console, args);
+        };
+        return () => {
+            console.error = originalConsoleError;
+        };
+    }, [setShowNetworkGuide]);
 
     // --- HELPER FUNCTIONS ---
     const truncateAddress = (addr: string | null) => {
@@ -66,6 +101,7 @@ export default function MintPage() {
 
     return (
         <div className="flex h-screen bg-[#231a0f] text-slate-200 font-sans overflow-hidden">
+            {showNetworkGuide && <NetworkGuideModal onClose={() => setShowNetworkGuide(false)} />}
 
             {/* SIDEBAR (Kept same as before) */}
             <aside className="w-20 lg:w-64 h-full border-r border-white/5 bg-[#f8f7f5]/5 dark:bg-[#231a0f]/95 flex flex-col justify-between z-20 transition-all duration-300">

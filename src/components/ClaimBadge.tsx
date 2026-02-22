@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useAddTxIntention, useFinalizeBTCTransaction, useSignIntention, useSendBTCTransactions, useEVMAddress } from "@midl/executor-react";
+import { useAddTxIntention, useFinalizeBTCTransaction, useSignIntention, useEVMAddress } from "@midl/executor-react";
 import { useWaitForTransaction, useAccounts } from "@midl/react";
-import { useReadContract } from "wagmi";
+import { useReadContract, usePublicClient } from "wagmi";
 import { encodeFunctionData } from "viem";
 import MidlSBTAbi from "../abi/MidlSBT.json";
 
 // Contract Address
-const SBT_CONTRACT_ADDRESS = "0x05C26E0D786Ccd5fea3A53251D78924d5c8BB568";
+const SBT_CONTRACT_ADDRESS = "0x254349F8D356ED15a774C318dC770ea1BC6912fc";
+const CURRENT_CONTRACT = "0x254349F8D356ED15a774C318dC770ea1BC6912fc";
+const CONTRACT_VERSION_KEY = "vibe_contract_address";
 
 interface ClaimBadgeProps {
     badgeId?: string;
@@ -76,7 +78,7 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     }, [btcError]);
 
     const { signIntentionAsync } = useSignIntention();
-    const { sendBTCTransactionsAsync } = useSendBTCTransactions();
+    const publicClient = usePublicClient();
 
     // Check Ownership (On-Chain + Local Fallback)
     const { data: balance, refetch: refetchBalance } = useReadContract({
@@ -107,6 +109,23 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
         },
     });
 
+    // --- EFFECT: CONTRACT VERSION CHECK ---
+    useEffect(() => {
+        const storedContract = localStorage.getItem(CONTRACT_VERSION_KEY);
+        if (storedContract !== CURRENT_CONTRACT) {
+            // Clear all old badge claim keys
+            const keysToRemove: string[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith("vibe_badge_claim_")) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            localStorage.setItem(CONTRACT_VERSION_KEY, CURRENT_CONTRACT);
+        }
+    }, []);
+
     // --- EFFECT: CHECK LOCAL STORAGE ON MOUNT ---
     useEffect(() => {
         console.log("[ClaimBadge] Checking storage. Address:", address, "BadgeID:", badgeId);
@@ -129,9 +148,22 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     // --- LOGIC: THE 4-STEP FLOW ---
     const handleClaim = async () => {
         if (!address) return alert("Please connect wallet first.");
+
+        // Full reset before starting
+        setIsMinting(false);
+        setStatus("idle");
+        setErrorMsg(null);
+        setCountdown(null);
+        setTxId(null);
+        setEvmTxHash(null);
+        finalizedRef.current = false;
+
+        // Small delay to let state settle before starting new flow
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         setIsMinting(true);
         setStatus("preparing");
-        setErrorMsg(null);
+
         try {
             console.log("STEP 1: Creating Intention...");
             addTxIntention({
@@ -183,9 +215,9 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
             const hasSigned = txIntentions.some((i: any) => i.signedEvmTransaction);
             if (status === "broadcasting" && hasSigned && btcData) {
                 try {
-                    console.log("STEP 4: Broadcasting...");
+                    console.log("STEP 4: Broadcasting via publicClient...");
                     // @ts-ignore
-                    const result = await sendBTCTransactionsAsync({
+                    const result = await publicClient?.sendBTCTransactions({
                         serializedTransactions: txIntentions
                             .map((i: any) => i.signedEvmTransaction as `0x${string}`)
                             .filter(Boolean),
@@ -218,7 +250,7 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
             }
         };
         broadcast();
-    }, [status, txIntentions, btcData, waitForTransaction]);
+    }, [status, txIntentions, btcData, publicClient, waitForTransaction]);
 
     // --- AUTO-CLOSE COUNTDOWN ---
     useEffect(() => {

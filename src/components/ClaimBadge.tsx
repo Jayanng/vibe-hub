@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useAddTxIntention, useFinalizeBTCTransaction, useSignIntention, useEVMAddress } from "@midl/executor-react";
+import { useAddTxIntention, useFinalizeBTCTransaction, useSignIntention, useSendBTCTransactions, useEVMAddress } from "@midl/executor-react";
 import { useWaitForTransaction, useAccounts } from "@midl/react";
-import { useReadContract, usePublicClient } from "wagmi";
+import { useReadContract } from "wagmi";
 import { encodeFunctionData } from "viem";
 import MidlSBTAbi from "../abi/MidlSBT.json";
 
@@ -78,7 +78,7 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     }, [btcError]);
 
     const { signIntentionAsync } = useSignIntention();
-    const publicClient = usePublicClient();
+    const { sendBTCTransactionsAsync } = useSendBTCTransactions();
 
     // Check Ownership (On-Chain + Local Fallback)
     const { data: balance, refetch: refetchBalance } = useReadContract({
@@ -215,9 +215,9 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
             const hasSigned = txIntentions.some((i: any) => i.signedEvmTransaction);
             if (status === "broadcasting" && hasSigned && btcData) {
                 try {
-                    console.log("STEP 4: Broadcasting via publicClient...");
+                    console.log("STEP 4: Broadcasting...");
                     // @ts-ignore
-                    const result = await publicClient?.sendBTCTransactions({
+                    const result = await sendBTCTransactionsAsync({
                         serializedTransactions: txIntentions
                             .map((i: any) => i.signedEvmTransaction as `0x${string}`)
                             .filter(Boolean),
@@ -250,7 +250,7 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
             }
         };
         broadcast();
-    }, [status, txIntentions, btcData, publicClient, waitForTransaction]);
+    }, [status, txIntentions, btcData, waitForTransaction]);
 
     // --- AUTO-CLOSE COUNTDOWN ---
     useEffect(() => {

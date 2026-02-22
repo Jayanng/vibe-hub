@@ -113,11 +113,11 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     useEffect(() => {
         const storedContract = localStorage.getItem(CONTRACT_VERSION_KEY);
         if (storedContract !== CURRENT_CONTRACT) {
-            // Clear ALL vibe related keys
+            // Clear ALL vibe related keys regardless of key name
             const keysToRemove: string[] = [];
-            for (let i = 0; i < localStorage.length; i++) {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
                 const key = localStorage.key(i);
-                if (key && (key.startsWith("vibe_badge_claim_") || key.startsWith("vibe_contract"))) {
+                if (key && key.startsWith("vibe_")) {
                     keysToRemove.push(key);
                 }
             }

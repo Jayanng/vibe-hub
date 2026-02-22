@@ -11,7 +11,7 @@ import MidlSBTAbi from "../abi/MidlSBT.json";
 // Contract Address
 const SBT_CONTRACT_ADDRESS = "0x254349F8D356ED15a774C318dC770ea1BC6912fc";
 const CURRENT_CONTRACT = "0x254349F8D356ED15a774C318dC770ea1BC6912fc";
-const CONTRACT_VERSION_KEY = "vibe_contract_address";
+const CONTRACT_VERSION_KEY = "vibe_contract_v2";
 
 interface ClaimBadgeProps {
     badgeId?: string;
@@ -113,11 +113,11 @@ export function ClaimBadge({ badgeId = "early-adopter", badgeName = "Early Adopt
     useEffect(() => {
         const storedContract = localStorage.getItem(CONTRACT_VERSION_KEY);
         if (storedContract !== CURRENT_CONTRACT) {
-            // Clear all old badge claim keys
+            // Clear ALL vibe related keys
             const keysToRemove: string[] = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith("vibe_badge_claim_")) {
+                if (key && (key.startsWith("vibe_badge_claim_") || key.startsWith("vibe_contract"))) {
                     keysToRemove.push(key);
                 }
             }

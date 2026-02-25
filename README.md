@@ -103,7 +103,3 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## License
 
 © 2026 **Johnson Johnson Enyenihi** (Soul Hub). All Rights Reserved.
-
-This project is proprietary software. Viewing is permitted for evaluation purposes only.
-No copying, modification, or redistribution is allowed without explicit written permission from the author.
-See [LICENSE](./LICENSE) for full details.
